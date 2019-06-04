@@ -333,30 +333,31 @@ func (client *Client) buildRequestWithSigner(request requests.AcsRequest, signer
 
 	// resolve endpoint
 	endpoint := request.GetDomain()
-	if endpoint == "" {
-		if client.EndpointType != "" {
-			if client.EndpointMap != nil && (client.NetWork == "" || client.NetWork == "public") {
-				if endpoint = client.EndpointMap[regionId]; endpoint == "" {
-					endpoint = client.GetEndpointRules(regionId, request.GetProduct())
-				}
-			} else {
-				endpoint = client.GetEndpointRules(regionId, request.GetProduct())
-			}
-		} else {
-			resolveParam := &endpoints.ResolveParam{
-				Domain:               request.GetDomain(),
-				Product:              request.GetProduct(),
-				RegionId:             regionId,
-				LocationProduct:      request.GetLocationServiceCode(),
-				LocationEndpointType: request.GetLocationEndpointType(),
-				CommonApi:            client.ProcessCommonRequest,
-			}
-			endpoint, err = endpoints.Resolve(resolveParam)
-			if err != nil {
-				return
-			}
+	if endpoint == "" && client.EndpointType != "" {
+		if client.EndpointMap != nil && client.NetWork == "" || client.NetWork == "public" {
+			endpoint = client.EndpointMap[regionId]
+		}
+
+		if endpoint == "" {
+			endpoint = client.GetEndpointRules(regionId, request.GetProduct())
 		}
 	}
+
+	if endpoint == "" {
+		resolveParam := &endpoints.ResolveParam{
+			Domain:               request.GetDomain(),
+			Product:              request.GetProduct(),
+			RegionId:             regionId,
+			LocationProduct:      request.GetLocationServiceCode(),
+			LocationEndpointType: request.GetLocationEndpointType(),
+			CommonApi:            client.ProcessCommonRequest,
+		}
+		endpoint, err = endpoints.Resolve(resolveParam)
+		if err != nil {
+			return
+		}
+	}
+
 	request.SetDomain(endpoint)
 	if request.GetScheme() == "" {
 		request.SetScheme(client.config.Scheme)
